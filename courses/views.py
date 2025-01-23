@@ -79,6 +79,15 @@ class CourseModuleUpdateView(TemplateResponseMixin, View):
         )
 
 
+class ModuleContentListView(TemplateResponseMixin, View):
+    template_name = 'courses/manage/module/content_list.html'
+
+    def get(self, reqeust,module_id):
+        module = (get_object_or_404
+                  (Module, id=module_id, course__owner=reqeust.user))
+        return self.render_to_response({'module': module})
+
+
 class ContentCreateUpdateView(TemplateResponseMixin, View):
     module = None
     model = None
@@ -106,7 +115,7 @@ class ContentCreateUpdateView(TemplateResponseMixin, View):
             self.obj = get_object_or_404(
                 self.model, id=id, owner=request.user
             )
-            return super().dispatch(request, module_id, model_name)
+        return super().dispatch(request, module_id, model_name)
 
     def get(self, request, module_id, model_name, id=None):
         form = self.get_form(self.model, instance=self.obj)
@@ -129,3 +138,14 @@ class ContentCreateUpdateView(TemplateResponseMixin, View):
         return self.render_to_response(
             {'form': form, 'object': self.obj}
         )
+
+
+class ContentDeleteView(View):
+    def post(self, request, id):
+        content = get_object_or_404(
+            Content, id=id, module__course__owner=request.user
+        )
+        module = content.module
+        content.item.delete()
+        content.delete()
+        return redirect('module_content_list', module.id)
